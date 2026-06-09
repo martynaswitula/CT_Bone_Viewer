@@ -1,16 +1,19 @@
 <?php
+session_start();
 require_once 'db_connect.php';
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+if (!isset($_SESSION['lekarz_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['nifti_files'])) {
-    $patient_id = $_POST['patient_id'];
+    $patient_id = trim($_POST['patient_id']);
     $anatomy = $_POST['anatomy'];
     $notes = $_POST['notes'] ?? '';
 
-    $upload_dir = 'uploads/';
-    $preview_dir = 'previews/';
+    $upload_dir = '/home/site/wwwroot/uploads/';
+    $preview_dir = '/home/site/wwwroot/previews/';
 
     if (!is_dir($upload_dir)) { mkdir($upload_dir, 0777, true); }
     if (!is_dir($preview_dir)) { mkdir($preview_dir, 0777, true); }
@@ -22,8 +25,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['nifti_files'])) {
     foreach ($_FILES['nifti_files']['tmp_name'] as $key => $tmp_name) {
         if ($_FILES['nifti_files']['error'][$key] === UPLOAD_ERR_OK) {
             $name = basename($_FILES['nifti_files']['name'][$key]);
-            $unique_name = $timestamp . "_" . $name;
+            
+            // Walidacja rozszerzenia
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['nii', 'gz'])) {
+                die("Błąd: Niedozwolony typ pliku.");
+            }
+            
+            $unique_name = $timestamp . "_" . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
             $target_path = $upload_dir . $unique_name;
+            
             if (move_uploaded_file($tmp_name, $target_path)) {
                 $uploaded_paths[] = $target_path;
                 $original_names[] = $name;
@@ -47,10 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['nifti_files'])) {
     }
 
     try {
-        $sql = "INSERT INTO badania_ct (patient_id, anatomy_type, file_name, notes, preview_path)
-                VALUES (:pid, :anat, :fname, :notes, :prev)";
+        $sql = "INSERT INTO badania_ct (lekarz_id, patient_id, anatomy_type, file_name, notes, preview_path)
+                VALUES (:lid, :pid, :anat, :fname, :notes, :prev)";
         $stmt = $conn->prepare($sql);
         $stmt->execute([
+            ':lid'   => $_SESSION['lekarz_id'],
             ':pid'   => $patient_id,
             ':anat'  => $anatomy,
             ':fname' => $all_filenames,
@@ -65,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['nifti_files'])) {
         echo "Błąd bazy danych: " . $e->getMessage();
     }
 } else {
-    echo "Nieprawidłowe żądanie.";
+    header("Location: index.php");
+    exit();
 }
 ?>

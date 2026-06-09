@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['lekarz_id'])) {
+    header("Location: login.php");
+    exit();
+}
+?>
 <?php require_once 'db_connect.php'; ?>
 <!DOCTYPE html>
 <html lang="pl">
@@ -21,6 +28,23 @@
     </style>
 </head>
 <body>
+<nav class="navbar navbar-dark" style="background-color: #1a3c6e;">
+    <div class="container">
+        <span class="navbar-brand"><i class="bi bi-hospital"></i> CT Bone Viewer</span>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-white">
+                <i class="bi bi-person-circle"></i> 
+                <?= htmlspecialchars($_SESSION['lekarz_imie'] . ' ' . $_SESSION['lekarz_nazwisko']) ?>
+            </span>
+            <a href="results.php" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-table"></i> Historia
+            </a>
+            <a href="logout.php" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-box-arrow-right"></i> Wyloguj
+            </a>
+        </div>
+    </div>
+</nav>
 
 <div class="medical-header text-center">
     <h1><i class="bi bi-hospital"></i> CT Bone Viewer</h1>
