@@ -152,4 +152,3 @@ previews/
 
 **Martyna Śwituła**
 Politechnika Śląska
-[github.com/martyna190802](https://github.com/martyna190802)
