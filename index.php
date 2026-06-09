@@ -4,6 +4,12 @@ if (!isset($_SESSION['lekarz_id'])) {
     header("Location: login.php");
     exit();
 }
+
+// Przekierowanie admina do panelu
+if ($_SESSION['lekarz_rola'] === 'admin') {
+    header("Location: panel.php");
+    exit();
+}
 ?>
 <?php require_once 'db_connect.php'; ?>
 <!DOCTYPE html>
