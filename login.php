@@ -4,7 +4,7 @@ require_once 'db_connect.php';
 
 if (isset($_SESSION['lekarz_id'])) {
     if ($_SESSION['lekarz_rola'] === 'admin') {
-        header("Location: panel.php");
+        header("Location: index.php");
     } else {
         header("Location: index.php");
     }
@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['lekarz_rola'] = $lekarz['rola'];
 
             if ($lekarz['rola'] == 'admin') {
-                header("Location: panel.php");
+                header("Location: index.php");
             } else {
                 header("Location: index.php");
             }
