@@ -10,7 +10,6 @@ if (!isset($_SESSION['lekarz_id']) || $_SESSION['lekarz_rola'] !== 'admin') {
 $success = '';
 $error = '';
 
-// Reset hasła
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reset_haslo'])) {
     $id = (int)$_POST['lekarz_id'];
     $nowe_haslo = $_POST['nowe_haslo'];
@@ -24,7 +23,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reset_haslo'])) {
     }
 }
 
-// Usuwanie lekarza
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     $id = (int)$_GET['delete'];
     if ($id != $_SESSION['lekarz_id']) {
@@ -53,14 +51,26 @@ $lekarze = $conn->query("SELECT l.*, COUNT(b.id) as liczba_badan
     <style>
         body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .medical-header { background: linear-gradient(135deg, #6e1a1a 0%, #b43c3c 100%); color: white; padding: 1.5rem 0; margin-bottom: 2rem; border-radius: 0 0 25px 25px; }
+        .admin-header { background: linear-gradient(135deg, #6e1a1a 0%, #b43c3c 100%); color: white; padding: 1.5rem 0; margin-bottom: 2rem; border-radius: 0 0 25px 25px; }
     </style>
 </head>
 <body>
 
-<div class="medical-header text-center">
-    <h1><i class="bi bi-shield-lock"></i> Panel Administratora</h1>
-    <p>Zarządzanie kontami lekarzy</p>
+<div class="admin-header">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="m-0"><i class="bi bi-shield-lock"></i> Panel Administratora</h2>
+            <small>Zarządzanie kontami lekarzy</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="index.php" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-hospital"></i> Aplikacja
+            </a>
+            <a href="logout.php" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-box-arrow-right"></i> Wyloguj
+            </a>
+        </div>
+    </div>
 </div>
 
 <div class="container">
@@ -79,13 +89,33 @@ $lekarze = $conn->query("SELECT l.*, COUNT(b.id) as liczba_badan
     </div>
     <?php endif; ?>
 
-    <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="m-0"><i class="bi bi-people"></i> Lista lekarzy</h4>
-            <a href="logout.php" class="btn btn-outline-danger btn-sm">
-                <i class="bi bi-box-arrow-right"></i> Wyloguj
-            </a>
+    <!-- Statystyki -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card p-4 text-center">
+                <i class="bi bi-people fs-1 text-primary"></i>
+                <h3 class="mt-2"><?= count($lekarze) ?></h3>
+                <p class="text-muted m-0">Wszyscy użytkownicy</p>
+            </div>
         </div>
+        <div class="col-md-4">
+            <div class="card p-4 text-center">
+                <i class="bi bi-person-check fs-1 text-success"></i>
+                <h3 class="mt-2"><?= count(array_filter($lekarze, fn($l) => $l['rola'] == 'lekarz')) ?></h3>
+                <p class="text-muted m-0">Lekarze</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-4 text-center">
+                <i class="bi bi-file-earmark-medical fs-1 text-info"></i>
+                <h3 class="mt-2"><?= array_sum(array_column($lekarze, 'liczba_badan')) ?></h3>
+                <p class="text-muted m-0">Wszystkich badań</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-4">
+        <h4 class="mb-3"><i class="bi bi-people"></i> Lista użytkowników</h4>
 
         <table class="table table-striped table-bordered table-hover">
             <thead class="table-dark">
@@ -96,8 +126,7 @@ $lekarze = $conn->query("SELECT l.*, COUNT(b.id) as liczba_badan
                     <th>Rola</th>
                     <th>Badania</th>
                     <th>Data rejestracji</th>
-                    <th>Reset hasła</th>
-                    <th></th>
+                    <th>Akcje</th>
                 </tr>
             </thead>
             <tbody>
@@ -113,28 +142,36 @@ $lekarze = $conn->query("SELECT l.*, COUNT(b.id) as liczba_badan
                             <span class="badge bg-primary">Lekarz</span>
                         <?php endif; ?>
                     </td>
-                    <td><?= $l['liczba_badan'] ?></td>
+                    <td><span class="badge bg-info"><?= $l['liczba_badan'] ?></span></td>
                     <td><?= $l['created_at'] ?></td>
                     <td>
                         <?php if ($l['rola'] != 'admin'): ?>
-                        <button class="btn btn-warning btn-sm" data-bs-toggle="modal" 
-                                data-bs-target="#resetModal<?= $l['id'] ?>">
-                            <i class="bi bi-key"></i> Reset
-                        </button>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-warning btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#resetModal<?= $l['id'] ?>">
+                                <i class="bi bi-key"></i> Reset hasła
+                            </button>
+                            <a href='admin.php?delete=<?= $l['id'] ?>'
+                               onclick='return confirm("Czy na pewno chcesz usunąć konto <?= htmlspecialchars($l['imie'] . ' ' . $l['nazwisko']) ?> wraz ze wszystkimi badaniami?")'
+                               class='btn btn-danger btn-sm'>
+                               <i class="bi bi-trash"></i> Usuń
+                            </a>
+                        </div>
 
-                        <!-- Modal reset hasła -->
                         <div class="modal fade" id="resetModal<?= $l['id'] ?>" tabindex="-1">
                             <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title">Reset hasła — <?= htmlspecialchars($l['imie'] . ' ' . $l['nazwisko']) ?></h5>
+                                        <h5 class="modal-title">
+                                            <i class="bi bi-key"></i> Reset hasła — <?= htmlspecialchars($l['imie'] . ' ' . $l['nazwisko']) ?>
+                                        </h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
                                     <form method="POST">
                                         <div class="modal-body">
                                             <input type="hidden" name="lekarz_id" value="<?= $l['id'] ?>">
                                             <label class="form-label fw-bold">Nowe hasło</label>
-                                            <input type="password" name="nowe_haslo" class="form-control" 
+                                            <input type="password" name="nowe_haslo" class="form-control"
                                                    placeholder="min. 8 znaków" required>
                                         </div>
                                         <div class="modal-footer">
@@ -147,13 +184,8 @@ $lekarze = $conn->query("SELECT l.*, COUNT(b.id) as liczba_badan
                                 </div>
                             </div>
                         </div>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php if ($l['rola'] != 'admin'): ?>
-                        <a href='admin.php?delete=<?= $l['id'] ?>'
-                           onclick='return confirm("Czy na pewno chcesz usunąć to konto wraz ze wszystkimi badaniami?")'
-                           class='btn btn-danger btn-sm'>✕</a>
+                        <?php else: ?>
+                            <span class="text-muted small">Konto chronione</span>
                         <?php endif; ?>
                     </td>
                 </tr>
