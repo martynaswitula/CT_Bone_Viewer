@@ -2,3 +2,9 @@ php_value upload_max_filesize 512M
 php_value post_max_size 512M
 php_value max_execution_time 300
 php_value max_input_time 300
+
+# Nagłówki bezpieczeństwa
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
