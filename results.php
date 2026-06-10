@@ -41,6 +41,45 @@ if (!isset($_SESSION['lekarz_id'])) {
     </div>
 </nav>
 
+<!-- Statystyki z API -->
+<div class="container mt-3">
+    <div class="card p-3 mb-3" id="apiStats">
+        <div class="d-flex align-items-center gap-2">
+            <div class="spinner-border spinner-border-sm text-primary" id="statsLoader"></div>
+            <span class="text-muted small">Ładowanie statystyk systemu...</span>
+        </div>
+    </div>
+</div>
+
+<script>
+fetch('https://ct-bone-api.azurewebsites.net')
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('apiStats').innerHTML = `
+            <div class="row text-center g-3">
+                <div class="col-md-4">
+                    <i class="bi bi-people fs-3 text-primary"></i>
+                    <h4 class="mt-1">${data.lekarze}</h4>
+                    <small class="text-muted">Lekarzy w systemie</small>
+                </div>
+                <div class="col-md-4">
+                    <i class="bi bi-file-earmark-medical fs-3 text-success"></i>
+                    <h4 class="mt-1">${data.badania}</h4>
+                    <small class="text-muted">Wszystkich badań</small>
+                </div>
+                <div class="col-md-4">
+                    <i class="bi bi-clock fs-3 text-info"></i>
+                    <h4 class="mt-1 small">${data.timestamp}</h4>
+                    <small class="text-muted">Ostatnia aktualizacja API</small>
+                </div>
+            </div>`;
+    })
+    .catch(() => {
+        document.getElementById('apiStats').innerHTML = 
+            '<small class="text-muted"><i class="bi bi-exclamation-circle"></i> Nie można pobrać statystyk z API</small>';
+    });
+</script>
+
 <div class="container">
 
     <?php if (isset($_GET['success'])): ?>
