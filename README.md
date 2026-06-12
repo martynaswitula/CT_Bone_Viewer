@@ -27,9 +27,9 @@ Projekt wdrożony w architekturze mikrousług na Microsoft Azure:
 ```
 ┌─────────────────────────────────┐     HTTP/JSON      ┌─────────────────────────────┐
 │   ct-bone-viewer (App Service)  │ ────────────────→  │  ct-bone-api (App Service)  │
-│  https://ct-bone-viewer.        │                    │  https://ct-bone-api.        │
+│                                 │                    │                             │
 │         azurewebsites.net       │ ←────────────────  │       azurewebsites.net     │
-│  PHP 8.2 | SQLite | Bootstrap   │    JSON statystyki  │  PHP 8.2 | REST API         │
+│  PHP 8.2 | SQLite | Bootstrap   │    JSON statystyki │  PHP 8.2 | REST API         │
 └─────────────────────────────────┘                    └─────────────────────────────┘
                     │                                               │
                     └───────────────────┬───────────────────────────┘
@@ -184,5 +184,5 @@ Wdrożenie następuje **tylko po pomyślnym przejściu wszystkich testów**.
 ## 👤 Autor
 
 **Martyna Śwituła**
-Politechnika Śląska
+
 [github.com/martynaswitula](https://github.com/martynaswitula)
