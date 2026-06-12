@@ -1,16 +1,45 @@
 # 🦴 CT Bone Viewer
 
-Interaktywna webowa przeglądarka struktur kostnych z tomografii komputerowej (CT) w formacie NIfTI. Umożliwia wczytanie plików segmentacji, wizualizację 3D bezpośrednio w przeglądarce oraz zarządzanie historią badań w bazie danych.
+Webowy system interaktywnego przeglądania struktur kostnych z tomografii komputerowej (CT) w formacie NIfTI, wdrożony w chmurze Microsoft Azure.
+
+🌐 **Live demo:** https://ct-bone-viewer.azurewebsites.net
 
 ---
 
 ## 📋 Opis projektu
 
-Aplikacja umożliwia:
-- Wczytanie plików segmentacji w formacie NIfTI (`.nii`, `.nii.gz`) i interaktywne przeglądanie struktury kostnej 3D w przeglądarce (WebGL)
-- Wybór spośród ponad 100 struktur anatomicznych z bazy TotalSegmentator (kości, narządy, naczynia, mięśnie)
-- Zapis metadanych badania (ID pacjenta, typ struktury, notatki) do bazy danych MySQL
+Aplikacja umożliwia lekarzom:
+- Bezpieczne logowanie i rejestrację konta
+- Wczytanie plików segmentacji w formacie NIfTI (`.nii`, `.nii.gz`) i wizualizację struktury kostnej 3D bezpośrednio w przeglądarce (WebGL)
+- Wybór spośród ponad 100 struktur anatomicznych z bazy TotalSegmentator
+- Zapis metadanych badania do bazy danych
 - Przeglądanie i usuwanie historii badań
+- Podgląd statystyk systemu pobieranych z REST API (mikrousługa ct-bone-api)
+
+Panel administratora umożliwia zarządzanie kontami lekarzy (reset haseł, usuwanie kont).
+
+---
+
+## 🏗️ Architektura
+
+Projekt wdrożony w architekturze mikrousług na Microsoft Azure:
+
+```
+┌─────────────────────────────────┐     HTTP/JSON      ┌─────────────────────────────┐
+│   ct-bone-viewer (App Service)  │ ────────────────→  │  ct-bone-api (App Service)  │
+│  https://ct-bone-viewer.        │                    │  https://ct-bone-api.        │
+│         azurewebsites.net       │ ←────────────────  │       azurewebsites.net     │
+│  PHP 8.2 | SQLite | Bootstrap   │    JSON statystyki  │  PHP 8.2 | REST API         │
+└─────────────────────────────────┘                    └─────────────────────────────┘
+                    │                                               │
+                    └───────────────────┬───────────────────────────┘
+                                        │
+                              ┌─────────▼─────────┐
+                              │   Microsoft Azure  │
+                              │  Switzerland North │
+                              │   Terraform IaC    │
+                              └───────────────────┘
+```
 
 ---
 
@@ -18,133 +47,137 @@ Aplikacja umożliwia:
 
 | Warstwa | Technologia |
 |---|---|
-| Frontend | PHP, HTML5, Bootstrap 5, JavaScript |
+| Frontend | PHP 8.2, HTML5, Bootstrap 5, JavaScript |
 | Wizualizacja 3D | [NiiVue](https://github.com/niivue/niivue) (WebGL) |
 | Wyszukiwarka struktur | [Select2](https://select2.org/) |
-| Backend | PHP 8.x |
-| Baza danych | MySQL / MariaDB |
-| Serwer lokalny | XAMPP (Apache) |
+| Baza danych | SQLite (PDO) |
+| Infrastruktura | Microsoft Azure App Service (Linux, PHP 8.2) |
+| IaC | Terraform v1.15.5 |
+| CI/CD | GitHub Actions (test → build → deploy) |
+| Testy | PHP Unit Tests (19 testów) |
 
 ---
 
 ## 📁 Struktura projektu
 
 ```
-projekt_ct_viewer/
-├── index.php            # Strona główna – formularz i przeglądarka 3D
-├── upload_handler.php   # Backend – obsługa przesyłania plików i zapis do bazy
-├── results.php          # Panel historii badań
-├── delete.php           # Usuwanie rekordu z bazy
-├── db_connect.php       # Konfiguracja połączenia z bazą danych (PDO)
-├── uploads/             # (gitignore) Wgrane pliki NIfTI
-└── previews/            # (gitignore) Zrzuty ekranu podglądu 3D
+CT_Bone_Viewer/
+├── index.php                          # Strona główna + panel admina
+├── login.php                          # Logowanie
+├── register.php                       # Rejestracja lekarza
+├── logout.php                         # Wylogowanie
+├── results.php                        # Historia badań + widget API
+├── upload_handler.php                 # Backend: zapis plików i bazy
+├── delete.php                         # Usuwanie rekordów
+├── db_connect.php                     # Połączenie SQLite + tworzenie tabel
+├── tests/
+│   └── AppTest.php                    # 19 testów jednostkowych PHP
+├── terraform/
+│   ├── main.tf                        # Infrastruktura Azure jako kod
+│   └── .gitignore                     # Ignorowanie plików stanu Terraform
+├── .github/
+│   └── workflows/
+│       └── main_ct-bone-viewer.yml    # Pipeline CI/CD: test→build→deploy
+├── .htaccess                          # Konfiguracja Apache
+└── README.md
 ```
 
 ---
 
-## ⚙️ Instalacja i uruchomienie (lokalnie)
+## ⚙️ Instalacja lokalna
 
 ### Wymagania
+- [XAMPP](https://www.apachefriends.org/) z Apache i PHP 8.2
+- Nowoczesna przeglądarka z WebGL (Chrome, Firefox, Edge)
 
-- [XAMPP](https://www.apachefriends.org/) z uruchomionym Apache i MySQL
-- Nowoczesna przeglądarka z obsługą WebGL (Chrome, Firefox, Edge)
+### Kroki
 
-### Kroki instalacji
-
-**1. Sklonuj repozytorium do folderu XAMPP**
-
+**1. Sklonuj repozytorium**
 ```bash
-git clone https://github.com/martyna190802/CT_Bone_Viewer.git C:/xampp/htdocs/projekt_ct_viewer
+git clone https://github.com/martynaswitula/CT_Bone_Viewer.git C:/xampp/htdocs/projekt_ct_viewer
 ```
 
-**2. Utwórz bazę danych**
+**2. Uruchom XAMPP**
+- Otwórz XAMPP Control Panel
+- Kliknij Start przy Apache
 
-W phpMyAdmin (`http://localhost/phpmyadmin`) utwórz bazę i tabelę:
-
-```sql
-CREATE DATABASE ct_viewer;
-USE ct_viewer;
-
-CREATE TABLE badania_ct (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    patient_id VARCHAR(50) NOT NULL,
-    anatomy_type VARCHAR(20) NOT NULL,
-    file_name VARCHAR(255),
-    notes TEXT,
-    preview_path VARCHAR(255),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-**3. Skonfiguruj połączenie z bazą danych**
-
-Edytuj plik `db_connect.php`:
-
-```php
-$host = 'localhost';
-$dbname = 'ct_viewer';
-$username = 'root';
-$password = '';
-```
-
-**4. Utwórz wymagane foldery**
-
+**3. Utwórz wymagane foldery**
 ```bash
 mkdir C:/xampp/htdocs/projekt_ct_viewer/uploads
 mkdir C:/xampp/htdocs/projekt_ct_viewer/previews
+mkdir C:/xampp/htdocs/projekt_ct_viewer/database
 ```
 
-**5. Uruchom aplikację**
-
-Otwórz w przeglądarce:
+**4. Otwórz aplikację**
 ```
-http://localhost/projekt_ct_viewer/
+http://localhost/projekt_ct_viewer/login.php
 ```
 
 ---
 
-## 🚀 Sposób użycia
+## ☁️ Wdrożenie w chmurze (Terraform)
 
-1. Otwórz stronę główną aplikacji
-2. Wprowadź **ID Pacjenta**
-3. Wyszukaj i wybierz **typ struktury anatomicznej** (np. wpisz "miednica" lub "pelvis")
-4. Opcjonalnie dodaj **notatki**
-5. Zaznacz pliki NIfTI (`.nii` lub `.nii.gz`)
-6. Poczekaj aż przeglądarka 3D wyrenderuje strukturę
-7. Kliknij **Zapisz Badanie**
-8. Wynik pojawi się w panelu **Historia Badań**
+### Wymagania
+- [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli)
+- [Terraform](https://developer.hashicorp.com/terraform/install)
+- Konto Microsoft Azure
 
-### Sterowanie przeglądarką 3D
+### Kroki
 
-| Akcja | Efekt |
-|---|---|
-| Lewy przycisk myszy | Obrót struktury |
-| Prawy przycisk myszy | Zmiana kontrastu |
-| Scroll myszy | Przybliżanie / oddalanie |
-| Przycisk Reset | Przywrócenie domyślnego widoku |
+```bash
+# Zaloguj się do Azure
+az login
+
+# Przejdź do folderu Terraform
+cd terraform/
+
+# Zainicjuj Terraform
+terraform init
+
+# Sprawdź plan
+terraform plan
+
+# Wdróż infrastrukturę
+terraform apply
+```
 
 ---
 
-## 🫀 Obsługiwane struktury anatomiczne
+## 🚀 CI/CD Pipeline
 
-Aplikacja obsługuje ponad 100 struktur z bazy [TotalSegmentator](https://github.com/wasserth/TotalSegmentator), pogrupowanych w kategorie:
+Pipeline GitHub Actions uruchamia się automatycznie po każdym `push` na branch `main`:
 
-- **Kości i stawy** — miednica, mostek, kręgosłup (C1–L5), czaszka, żebra, kości kończyn
-- **Narządy wewnętrzne** — serce, płuca, wątroba, nerki, trzustka i inne
-- **Naczynia krwionośne** — aorta, tętnice, żyły
-- **Mięśnie** — mięśnie pośladkowe, biodrowo-lędźwiowe i inne
+```
+push → test (19 testów PHP) → build → deploy → Azure App Service
+```
+
+Wdrożenie następuje **tylko po pomyślnym przejściu wszystkich testów**.
 
 ---
 
-## ⚠️ Gitignore
+## 🔐 Bezpieczeństwo
 
-Plik `.gitignore` wyklucza z repozytorium:
-```
-uploads/
-previews/
-*.nii
-*.nii.gz
-```
+- **HTTPS** — wymuszony na poziomie Azure App Service
+- **Szyfrowanie haseł** — bcrypt (`password_hash()` / `password_verify()`)
+- **SQL Injection** — PDO Prepared Statements
+- **XSS** — `htmlspecialchars()` na wszystkich wyjściach
+- **Autoryzacja** — weryfikacja sesji na każdej stronie
+- **Walidacja plików** — sprawdzanie rozszerzeń (.nii, .gz)
+
+---
+
+## 👤 Dane testowe
+
+| Rola | Email | Hasło |
+|---|---|---|
+| Administrator | admin@ctviewer.pl | Admin2026! |
+| Lekarz | zarejestruj przez formularz | min. 8 znaków |
+
+---
+
+## 🔗 Powiązane repozytoria
+
+- **REST API:** [CT_Bone_API](https://github.com/martynaswitula/CT_Bone_API)
 
 ---
 
@@ -152,3 +185,4 @@ previews/
 
 **Martyna Śwituła**
 Politechnika Śląska
+[github.com/martynaswitula](https://github.com/martynaswitula)
